@@ -2,7 +2,8 @@
 
 #pragma GCC warning "SSL is not ready yet ... cert-key part"
 
-#define DEBUG_SSL Serial.printf
+#define DEBUG_SSL 
+//Serial.printf
 
 #undef connect
 #undef write
