@@ -22,8 +22,8 @@ typedef struct
     const char *ca_cert;
     const char *certificate;
     const char *private_key;
-    const char *pskIdent; // identity for PSK cipher suites
-    const char *psKey;    // key in hex for PSK cipher suites
+    const char *pskIdent; 
+    const char *psKey;    
 
     const char *ciphers;
     const char *sni_host_name;
@@ -37,6 +37,8 @@ protected:
     bool _connected;
     int _lastError = 0;
     int ssl_begin(const char *host, uint32_t port, int vrf);
+    int ssl_try_load_files();
+    int ssl_try_load_array();
     void ssl_init()
     {
         SSL_library_init();

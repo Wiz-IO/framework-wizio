@@ -1,1 +1,4 @@
-v1
+v1.0.1
+* Use openSSL
+* Support certificates from files
+* Not support PSK and loading certificates from array

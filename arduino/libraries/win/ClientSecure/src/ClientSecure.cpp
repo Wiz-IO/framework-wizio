@@ -1,6 +1,6 @@
 #include "ClientSecure.h"
 
-#pragma GCC warning "SSL is not ready yet ... cert-key part"
+#pragma GCC warning "SSL is not ready yet..."
 
 #define DEBUG_SSL 
 //Serial.printf
@@ -10,7 +10,7 @@
 #undef read
 
 #define SSL_DEFAULT_TIMEOUT 10000
-#define SSL_ERROR_STRING    ERR_error_string(ERR_get_error(), NULL)
+#define SSL_ERROR_STRING ERR_error_string(ERR_get_error(), NULL)
 
 static int ssl_connect(secure_contex *client, const char *host, uint32_t port)
 {
@@ -61,12 +61,52 @@ static int ssl_connect(secure_contex *client, const char *host, uint32_t port)
     return client->sock;
 }
 
-static void msg_cb(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg)
+int ClientSecure::ssl_try_load_files()
 {
-    BIO *bio = (BIO *)arg;
-    const char *str_write_p = write_p ? ">>>" : "<<<";
-    BIO_printf(bio, "[DBG] %s\n", str_write_p);
-    BIO_dump(bio, (char *)buf, len);
+    //CA_LIST
+    if (client.ca_cert)
+    {
+        if (0 == SSL_CTX_load_verify_locations(client.ctx, client.ca_cert, 0))
+        {
+            DEBUG_SSL("[ERROR] LOAD CA_FILE\n");
+            return -1;
+        }
+        SSL_CTX_set_client_CA_list(client.ctx, SSL_load_client_CA_file(client.ca_cert));
+        DEBUG_SSL("[SSL] USE CA_FILE\n");
+    }
+
+    if (client.certificate)
+    {
+        if (SSL_CTX_use_certificate_chain_file(client.ctx, client.certificate) <= 0)
+        //if (SSL_CTX_use_certificate_file(client.ctx, client.certificate, SSL_FILETYPE_PEM) <= 0)
+        {
+            DEBUG_SSL("[ERROR] CERTIFICATE\n");
+            return -1;
+        }
+        DEBUG_SSL("[SSL] USE CERTIFICATE\n");
+    }
+
+    if (client.private_key)
+    {
+        if (SSL_CTX_use_PrivateKey_file(client.ctx, client.private_key, SSL_FILETYPE_PEM) <= 0)
+        {
+            DEBUG_SSL("[ERROR] USE PRIVATE KEY FILE\n");
+            return -1;
+        }
+        if (!SSL_CTX_check_private_key(client.ctx))
+        {
+            DEBUG_SSL("[ERROR] VRF PRIVATE\n");
+            return -1;
+        }
+        DEBUG_SSL("[SSL] USE PRIVATE KEY\n");
+    }
+    return 0;
+}
+
+int ClientSecure::ssl_try_load_array()
+{
+    //TODO
+    return 0;
 }
 
 int ClientSecure::ssl_begin(const char *host, uint32_t port, int vrf)
@@ -77,59 +117,16 @@ int ClientSecure::ssl_begin(const char *host, uint32_t port, int vrf)
     if (ssl_connect(&client, host, port) < 0)
         return -1;
 
-    client.ctx = SSL_CTX_new(SSLv23_client_method()); // //TLSv1_2_method
+    client.ctx = SSL_CTX_new(SSLv23_method()); // 23 can work with TLSv1_2_method
     //SSL_CTX_set_options(client.ctx, SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1 | SSL_OP_NO_TLSv1_3);
     //SSL_CTX_set_options(client.ctx, SSL_OP_NO_COMPRESSION);
 
-#if 0 // SSL_trace
-    static BIO *outbio = BIO_new_fp(stdout, BIO_NOCLOSE);
-    SSL_set_msg_callback(client.ssl, msg_cb);
-    SSL_set_msg_callback_arg(client.ssl, outbio);
-#endif
+    if (ssl_try_load_files() || ssl_try_load_array())
+        return -1;
 
-    //CA_LIST
-    if (client.ca_cert)
-    {
-        rc = SSL_CTX_load_verify_locations(client.ctx, client.ca_cert, 0);
-        if (0 == rc)
-        {
-            DEBUG_SSL("[ERROR] CA_LIST: %d\n", rc);
-            return -1;
-        }
-        SSL_CTX_set_client_CA_list(client.ctx, SSL_load_client_CA_file(client.ca_cert));
-        DEBUG_SSL("[SSL] USE CA_LIST\n");
-    }
+    //CREATE SSL, must be here, after CTX initialization
+    client.ssl = SSL_new(client.ctx);
 
-    if (client.certificate)
-    {
-        if (SSL_CTX_use_certificate_chain_file(client.ctx, client.certificate) <= 0)
-        //if (SSL_CTX_use_certificate_file(client.ctx, client.certificate, SSL_FILETYPE_PEM) <= 0)
-        {
-            DEBUG_SSL("[ERROR] CERTIFICATE\n", rc);
-            ERR_print_errors_fp(stderr);
-            return -1;
-        }
-        DEBUG_SSL("[SSL] USE CERTIFICATE\n");
-    }
-
-    if (client.private_key)
-    {
-        if (SSL_CTX_use_PrivateKey_file(client.ctx, client.private_key, SSL_FILETYPE_PEM) <= 0)
-        {
-            DEBUG_SSL("[ERROR] USE PRIVATE\n", rc);
-            ERR_print_errors_fp(stderr);
-            return -1;
-        }
-        if (!SSL_CTX_check_private_key(client.ctx))
-        {
-            DEBUG_SSL("[ERROR] VRF PRIVATE\n", rc);
-            ERR_print_errors_fp(stderr);
-            return -1;
-        }
-        DEBUG_SSL("[SSL] USE PRIVATE KEY\n");
-    }
-
-    client.ssl = SSL_new(client.ctx); // must be here, after CTX initialization    
     //CIPHERS
     if (client.ciphers)
         SSL_set_cipher_list(client.ssl, client.ciphers);
@@ -144,22 +141,23 @@ int ClientSecure::ssl_begin(const char *host, uint32_t port, int vrf)
     //ATTACH SOCKET
     if (SSL_set_fd(client.ssl, client.sock) <= 0)
     {
-        DEBUG_SSL("[ERROR] SSL_set_fd()\n"); //ERR_error_string(ERR_get_error(), NULL)
+        DEBUG_SSL("[ERROR] SSL_set_fd()\n");
         return -1;
     }
+
     //HANDSHAKE
     rc = SSL_connect(client.ssl);
     if (rc <= 0)
     {
-        DEBUG_SSL("[ERROR] SSL_connect() %s\n", SSL_ERROR_STRING); //SSL_ERROR_SSL
-        ERR_print_errors_fp(stderr);
+        DEBUG_SSL("[ERROR] SSL_connect() %s\n", SSL_ERROR_STRING);
+        //ERR_print_errors_fp(stderr);
         return -1;
     }
 
     if (vrf && SSL_get_verify_result(client.ssl) != X509_V_OK)
     {
         DEBUG_SSL("[ERROR] Certificate doesn't verify\n%s\n", SSL_ERROR_STRING);
-        ERR_print_errors_fp(stderr);
+        //ERR_print_errors_fp(stderr);
         return -1;
     }
 
@@ -284,7 +282,6 @@ int ClientSecure::connect(const char *host, uint16_t port, const char *pskIdent,
     client.private_key = NULL;
     if (ssl_begin(host, port, client.verify) < 0)
     {
-        //DEBUG_SSL("[ERROR] ssl_begin(PSK)\n");
         stop();
         return 0;
     }
