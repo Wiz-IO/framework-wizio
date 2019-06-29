@@ -6,7 +6,7 @@ extern "C"
 {
 #endif
 
-//#include <_ansi.h>
+#include <ctype.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -30,11 +30,6 @@ extern "C"
     unsigned int micros(void);
     void delay(unsigned int);
 
-    int isascii(int c);
-    int toascii(int c);
-    long atol(const char *s);
-    char *itoa(int value, char *result, int base);
-    char *ltoa(long value, char *result, int base);
     char *utoa(unsigned value, char *result, int base);
     char *ultoa(unsigned long value, char *result, int base);
 
@@ -50,11 +45,6 @@ extern "C"
     void log_buf(const char *text, const unsigned char *buf, unsigned int len);
 #define DBG(FORMAT, ...) log_printf(FORMAT, ##__VA_ARGS__)
 #define DMP(TEXT, BUFFER, LEN) log_buf(TEXT, (unsigned char *)BUFFER, LEN)
-
-
-
-//extern HWND hwnd;
-//extern HWND hEdit;
 
 
 #ifdef __cplusplus
