@@ -80,7 +80,6 @@ int ClientSecure::ssl_begin(const char *host, uint32_t port, int vrf)
     client.ctx = SSL_CTX_new(SSLv23_client_method()); // //TLSv1_2_method
     //SSL_CTX_set_options(client.ctx, SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1 | SSL_OP_NO_TLSv1_3);
     //SSL_CTX_set_options(client.ctx, SSL_OP_NO_COMPRESSION);
-    client.ssl = SSL_new(client.ctx);
 
 #if 0 // SSL_trace
     static BIO *outbio = BIO_new_fp(stdout, BIO_NOCLOSE);
@@ -130,6 +129,7 @@ int ClientSecure::ssl_begin(const char *host, uint32_t port, int vrf)
         DEBUG_SSL("[SSL] USE PRIVATE KEY\n");
     }
 
+    client.ssl = SSL_new(client.ctx); // must be here, after CTX initialization    
     //CIPHERS
     if (client.ciphers)
         SSL_set_cipher_list(client.ssl, client.ciphers);
