@@ -63,13 +63,6 @@ char *ultoa(unsigned long value, char *result, int base)
     return result;
 }
 
-double atof(const char *s)
-{
-    double val;
-    sscanf(s, "%f", &val);
-    return val;
-}
-
 #include <stdarg.h>
 int log_printf(const char *frm, ...)
 {
