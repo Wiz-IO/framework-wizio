@@ -38,30 +38,21 @@ uint32_t utc()
 
 void delay(unsigned int ms)
 {
-  //usleep(ms * 1000);
-  Sleep(ms);
+  usleep(ms * 1000);
 }
 
 inline void delayMicroseconds(unsigned int us)
 {
-  usleep(us); //?!
+  usleep(us);
 }
 
 #include <sys/time.h>
 unsigned int millis(void)
 {
-  return timeGetTime();
-  
-  SYSTEMTIME time;
-  GetSystemTime(&time);
-  printf("%u %u\n", time.wSecond, time.wMilliseconds );
-  return (time.wSecond * 1000) + time.wMilliseconds;
-#if 0
   struct timeval te;
   gettimeofday(&te, NULL);                                         // get current time
   long long milliseconds = te.tv_sec * 1000LL + te.tv_usec / 1000; // calculate milliseconds
   return milliseconds;
-#endif
 }
 
 unsigned int seconds(void)

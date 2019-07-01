@@ -71,8 +71,8 @@ long map(long x, long in_min, long in_max, long out_min, long out_max);
 unsigned int makeWord(unsigned int w);
 unsigned int makeWord(unsigned char h, unsigned char l);
 
-void noTone(uint8_t _pin) __attribute__((weak));
-void tone(uint8_t _pin, unsigned int frequency, unsigned long duration = 0) __attribute__((weak));
+void noTone(uint8_t _pin);
+void tone(uint8_t _pin, unsigned int frequency, unsigned long duration = 0);
 
 #endif //__cplusplus
 

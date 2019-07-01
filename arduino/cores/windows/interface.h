@@ -1,3 +1,24 @@
+/*
+    Created on: 01.01.2019
+    Author: Georgi Angelov
+        http://www.wizio.eu/
+        https://github.com/Wiz-IO    
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA   
+ */
+
 #ifndef INTERFACE_H_
 #define INTERFACE_H_
 
@@ -41,9 +62,10 @@ extern "C"
 #define SERIAL_BUFFER_SIZE 1024
 #endif
 
-    int log_printf(const char *frm, ...);
-    void log_buf(const char *text, const unsigned char *buf, unsigned int len);
-#define DBG(FORMAT, ...) log_printf(FORMAT, ##__VA_ARGS__)
+//int log_printf(const char *frm, ...);
+#define DBG(FORMAT, ...) ::printf(FORMAT, ##__VA_ARGS__)
+
+void log_buf(const char *text, const unsigned char *buf, unsigned int len);
 #define DMP(TEXT, BUFFER, LEN) log_buf(TEXT, (unsigned char *)BUFFER, LEN)
 
 

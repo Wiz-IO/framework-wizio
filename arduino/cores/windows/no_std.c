@@ -1,3 +1,23 @@
+/*
+    Created on: 01.01.2019
+    Author: varios
+        http://www.wizio.eu/
+        https://github.com/Wiz-IO    
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA   
+ */
 
 static const char *str_digits = "0123456789abcdef";
 
@@ -63,6 +83,7 @@ char *ultoa(unsigned long value, char *result, int base)
     return result;
 }
 
+#if 0
 #include <stdarg.h>
 int log_printf(const char *frm, ...)
 {
@@ -72,7 +93,9 @@ int log_printf(const char *frm, ...)
     va_end(arg);
     return 0;
 }
+#endif
 
+#if 0
 void log_buf(const char *text, const unsigned char *buf, unsigned int len)
 {
     if (len > 512)
@@ -82,7 +105,7 @@ void log_buf(const char *text, const unsigned char *buf, unsigned int len)
     unsigned int i, idx = 0;
     memset(bufferDump, 0, sizeof(bufferDump));
     snprintf(bufferDump + idx, sizeof(bufferDump) - idx, "[DMP] %s (%u bytes)\n", text, len);
-    log_printf(bufferDump);
+    ::printf(bufferDump);
     idx = 0;
     memset(bufferChar, 0, sizeof(bufferChar));
     for (i = 0; i < len; i++)
@@ -94,7 +117,7 @@ void log_buf(const char *text, const unsigned char *buf, unsigned int len)
             if (i > 0)
             {
                 snprintf(bufferDump + idx, sizeof(bufferDump) - idx, "  %s\n", bufferChar);
-                log_printf(bufferDump);
+                ::printf(bufferDump);
                 idx = 0;
                 memset(bufferChar, 0, sizeof(bufferChar));
             }
@@ -108,6 +131,7 @@ void log_buf(const char *text, const unsigned char *buf, unsigned int len)
         for (/* i = i */; i % 16 != 0; i++)
             idx += snprintf(bufferDump + idx, sizeof(bufferDump) - idx, "   ");
         snprintf(bufferDump + idx, sizeof(bufferDump) - idx, "  %s\n", bufferChar);
-        log_printf(bufferDump);
+        ::printf(bufferDump);
     }
 }
+#endif
