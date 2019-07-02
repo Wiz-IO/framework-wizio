@@ -37,13 +37,13 @@ class HardwareSerial : public Stream
 {
 protected:
 private:
-	const char *name;
+	char *port_name;
 	int fd;
 	int peeked;
 	char pk;
 
 public:
-	void setName(const char *aname) { name = aname; } 
+	void setName(const char *name);
 	HardwareSerial();
 	HardwareSerial(const char *name);
 	~HardwareSerial(){};
