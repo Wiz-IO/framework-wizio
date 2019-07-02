@@ -58,6 +58,9 @@ extern "C"
     uint32_t clockCyclesToMicroseconds(uint32_t a);
     uint32_t microsecondsToClockCycles(uint32_t a);
 
+    int analogRead(uint8_t pin);
+    void analogWrite(uint8_t pin, int val);    
+    
 #ifndef SERIAL_BUFFER_SIZE
 #define SERIAL_BUFFER_SIZE 1024
 #endif
