@@ -21,27 +21,32 @@
 
 #include "HardwareSerial.h"
 
-#define SERIAL_DEBUG printf
+#define SERIAL_DEBUG ::printf
 
 HardwareSerial::HardwareSerial() // for console
 {
-    name = NULL;
+    port_name = "-0-";
     fd = -1;
     peeked = 0;
     pk = 0;
 }
 
-HardwareSerial::HardwareSerial(const char *portname) // Serial(/dev/ttyUSB0")
+HardwareSerial::HardwareSerial(const char *name) // Serial(/dev/ttyUSB0")
 {
-    name = portname;
+    port_name = (char*)name;
     fd = -1;
     peeked = 0;
     pk = 0;
+}
+
+void HardwareSerial::setName(const char *name)
+{
+    port_name = (char*)name;
 }
 
 void HardwareSerial::begin(unsigned long brg)
 {
-    if (brg == 0 || name == NULL)
+    if (brg == 0 || port_name == NULL)
         return;
     switch (brg)
     {
@@ -136,21 +141,21 @@ void HardwareSerial::begin(unsigned long brg)
         brg = B4000000;
         break;
     default:
-        SERIAL_DEBUG("[ERROR] Serial invalid brgate\n");
+        SERIAL_DEBUG("[ERROR] Serial invalid brg\n");
         return;
     }
-    fd = open(name, O_RDWR | O_NOCTTY | O_NDELAY);
+    fd = open(port_name, O_RDWR | O_NOCTTY | O_NDELAY);
     if (fd == -1)
     {
-        SERIAL_DEBUG("[ERROR] Serial open\n");
+        SERIAL_DEBUG("[ERROR] Serial open %s\n", port_name);
         return;
     }
     fcntl(fd, F_SETFL, FNDELAY); // read no delay
     /*---------- Setting the Attributes of the serial port using termios structure --------- */
     struct termios SerialPortSettings;                             /* Create the structure                          */
     tcgetattr(fd, &SerialPortSettings);                            /* Get the current attributes of the Serial port */
-    cfsetispeed(&SerialPortSettings, B9600);                       /* Set Read  Speed as 9600                       */
-    cfsetospeed(&SerialPortSettings, B9600);                       /* Set Write Speed as 9600                       */
+    cfsetispeed(&SerialPortSettings, brg);                         /* Set Read  Speed                        */
+    cfsetospeed(&SerialPortSettings, brg);                         /* Set Write Speed                        */
     SerialPortSettings.c_cflag &= ~PARENB;                         /* Disables the Parity Enable bit(PARENB),So No Parity   */
     SerialPortSettings.c_cflag &= ~CSTOPB;                         /* CSTOPB = 2 Stop bits,here it is cleared so 1 Stop bit */
     SerialPortSettings.c_cflag &= ~CSIZE;                          /* Clears the mask for setting the data size             */
@@ -162,11 +167,11 @@ void HardwareSerial::begin(unsigned long brg)
     SerialPortSettings.c_oflag &= ~OPOST;                          /*No Output Processing*/
     if ((tcsetattr(fd, TCSANOW, &SerialPortSettings)) != 0)        /* Set the attributes to the termios structure*/
     {
-        SERIAL_DEBUG("[ERROR] Serial setting attributes");
+        SERIAL_DEBUG("[ERROR] Serial setting attributes\n");
     }
     else
     {
-        SERIAL_DEBUG("\n  brgate = 9600 \n  StopBits = 1 \n  Parity   = none");
+        SERIAL_DEBUG("\n  brgate = %u \n  StopBits = 1 \n  Parity   = none\n", brg);
     }
     /* Flush Port, then applies attributes */
     //tcflush(fd, TCIFLUSH);
@@ -195,9 +200,9 @@ int HardwareSerial::read(void)
 
 size_t HardwareSerial::write(uint8_t b)
 {
-    if (NULL == name)
+    if (NULL == port_name)
     {
-        ::SERIAL_DEBUG("%c", b);
+        SERIAL_DEBUG("%c", b);
         return 1;
     }
     if (fd == -1)
