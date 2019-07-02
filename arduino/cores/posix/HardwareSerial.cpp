@@ -19,13 +19,15 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA   
  */
 
+// sudo chmod 666 /dev/ttyS0
+
 #include "HardwareSerial.h"
 
 #define SERIAL_DEBUG ::printf
 
 HardwareSerial::HardwareSerial() // for console
 {
-    port_name = "-0-";
+    port_name = NULL;
     fd = -1;
     peeked = 0;
     pk = 0;
@@ -33,7 +35,7 @@ HardwareSerial::HardwareSerial() // for console
 
 HardwareSerial::HardwareSerial(const char *name) // Serial(/dev/ttyUSB0")
 {
-    port_name = (char*)name;
+    port_name = (char *)name;
     fd = -1;
     peeked = 0;
     pk = 0;
@@ -41,7 +43,7 @@ HardwareSerial::HardwareSerial(const char *name) // Serial(/dev/ttyUSB0")
 
 void HardwareSerial::setName(const char *name)
 {
-    port_name = (char*)name;
+    port_name = (char *)name;
 }
 
 void HardwareSerial::begin(unsigned long brg)
@@ -147,10 +149,12 @@ void HardwareSerial::begin(unsigned long brg)
     fd = open(port_name, O_RDWR | O_NOCTTY | O_NDELAY);
     if (fd == -1)
     {
-        SERIAL_DEBUG("[ERROR] Serial open %s\n", port_name);
+        SERIAL_DEBUG("[ERROR] Serial open %s ( %d )\n", port_name, fd);
         return;
     }
+    
     fcntl(fd, F_SETFL, FNDELAY); // read no delay
+
     /*---------- Setting the Attributes of the serial port using termios structure --------- */
     struct termios SerialPortSettings;                             /* Create the structure                          */
     tcgetattr(fd, &SerialPortSettings);                            /* Get the current attributes of the Serial port */
@@ -168,10 +172,6 @@ void HardwareSerial::begin(unsigned long brg)
     if ((tcsetattr(fd, TCSANOW, &SerialPortSettings)) != 0)        /* Set the attributes to the termios structure*/
     {
         SERIAL_DEBUG("[ERROR] Serial setting attributes\n");
-    }
-    else
-    {
-        SERIAL_DEBUG("\n  brgate = %u \n  StopBits = 1 \n  Parity   = none\n", brg);
     }
     /* Flush Port, then applies attributes */
     //tcflush(fd, TCIFLUSH);
