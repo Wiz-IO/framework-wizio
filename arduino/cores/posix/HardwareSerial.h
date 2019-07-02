@@ -43,7 +43,7 @@ private:
 	char pk;
 
 public:
-	void setName(const char *name);
+	void setName(const char *aname);
 	HardwareSerial();
 	HardwareSerial(const char *name);
 	~HardwareSerial(){};
