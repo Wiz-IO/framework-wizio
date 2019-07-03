@@ -37,6 +37,7 @@ public:
 	EthernetClient();
 	EthernetClient(uint8_t sock);
 
+        int fd() { return _sock; }
 	int connect(IPAddress ip, uint16_t port);
 	int connect(const char *host, uint16_t port);
 	size_t write(uint8_t);
