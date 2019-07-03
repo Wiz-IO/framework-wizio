@@ -37,6 +37,14 @@ public:
 	int _sock;
 	bool connect_true;
 	int id;
+	
+	//TODO
+	int setSocketOption(int option, char *value, size_t len){}
+	int setOption(int option, int *value){}
+	int getOption(int option, int *value){}
+	int setTimeout(uint32_t seconds){}
+	int setNoDelay(bool nodelay){}
+	bool getNoDelay(){}
 };
 
 #endif
