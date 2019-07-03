@@ -29,35 +29,38 @@
 
 class EthernetClient : public Client
 {
-
-#define CLIENT_MAX_INACTIVITY_RETRIES 100000
+private:
+	int _sock;
+	bool connect_true;
 
 public:
 	EthernetClient();
 	EthernetClient(uint8_t sock);
 
-	uint8_t status();
-	virtual int connect(IPAddress ip, uint16_t port);
-	virtual int connect(const char *host, uint16_t port);
-	virtual size_t write(uint8_t);
-	virtual size_t write(const uint8_t *buf, size_t size);
-	virtual int available();
-	virtual int read();
-	virtual int read(uint8_t *buf, size_t size);
-	virtual int peek();
-	virtual void flush();
-	virtual void stop();
-	virtual uint8_t connected();
-	virtual operator bool();
-	
-	using Print::write;
+	int connect(IPAddress ip, uint16_t port);
+	int connect(const char *host, uint16_t port);
+	size_t write(uint8_t);
+	size_t write(const uint8_t *buf, size_t size);
+	int available();
+	int read();
+	int read(uint8_t *buf, size_t size);
+	int peek();
+	void flush();
+	void stop();
+	uint8_t connected();
+	operator bool();
 
 	friend class EthernetServer;
 	class EthernetServer *_pCloseServer;
 
-	int _sock;
-	bool connect_true;
-	int id;
+	using Print::write;
+
+	int setSocketOption(int option, char *value, size_t len);
+	int setOption(int option, int *value);
+	int getOption(int option, int *value);
+	int setTimeout(uint32_t seconds);
+	int setNoDelay(bool nodelay);
+	bool getNoDelay();
 };
 
 #endif
