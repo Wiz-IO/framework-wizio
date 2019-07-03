@@ -48,11 +48,15 @@ public:
 	void flush();
 	void stop();
 	uint8_t connected();
-	operator bool();
 
-	friend class EthernetServer;
-	class EthernetServer *_pCloseServer;
+	operator bool() { return connected(); }
+	EthernetClient &operator=(const EthernetClient &other);
+	bool operator==(const bool value) { return bool() == value; }
+	bool operator!=(const bool value) { return bool() != value; }
+	bool operator==(const EthernetClient &);
+	bool operator!=(const EthernetClient &rhs) { return !this->operator==(rhs); };
 
+	//friend class EthernetServer;
 	using Print::write;
 
 	int setSocketOption(int option, char *value, size_t len);
