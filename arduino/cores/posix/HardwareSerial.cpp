@@ -20,6 +20,7 @@
  */
 
 // sudo chmod 666 /dev/ttyS0
+// dmesg | grep tty
 
 #include "HardwareSerial.h"
 
@@ -174,13 +175,15 @@ void HardwareSerial::begin(unsigned long brg)
         SERIAL_DEBUG("[ERROR] Serial setting attributes\n");
     }
     /* Flush Port, then applies attributes */
-    //tcflush(fd, TCIFLUSH);
+    tcflush(fd, TCIFLUSH);
+    flush();
 }
 
 void HardwareSerial::end()
 {
     if (fd == -1)
         return;
+    flush();    
     close(fd);
     fd = -1;
 }
@@ -202,7 +205,7 @@ size_t HardwareSerial::write(uint8_t b)
 {
     if (NULL == port_name)
     {
-        SERIAL_DEBUG("%c", b);
+        ::printf("%c", b);
         return 1;
     }
     if (fd == -1)
@@ -246,4 +249,7 @@ void HardwareSerial::flush(void)
 {
     if (fd == -1)
         return;
+    //ioctl(fd, TCFLSH, 0); // flush receive
+    //ioctl(fd, TCFLSH, 1); // flush transmit
+    ioctl(fd, TCFLSH, 2); // flush both
 }
