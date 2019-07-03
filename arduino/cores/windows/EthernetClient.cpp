@@ -239,11 +239,6 @@ uint8_t EthernetClient::connected()
 	return connect_true == true;
 }
 
-EthernetClient::operator bool()
-{
-	return _sock != -1;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool EthernetClient::getNoDelay()
