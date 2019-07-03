@@ -21,7 +21,11 @@
 
 #include "EthernetClient.h"
 
-#define DBG_CLIENT //Serial.printf
+#undef connect
+#undef write
+#undef read
+
+#define DEBUG_CLIENT //DBG
 
 EthernetClient::EthernetClient() : _sock(-1)
 {
@@ -39,7 +43,7 @@ static int _connect(int sock, struct sockaddr_in *psin, unsigned int len, uint32
 {
 	extern int errno;
 	int ret;
-	DBG_CLIENT("[TCP] Connecting: %d.%d.%d.%d : %d\n",
+	DEBUG_CLIENT("[TCP] Connecting: %d.%d.%d.%d : %d\n",
 			   (int)((psin->sin_addr.s_addr) & 0xFF),
 			   (int)((psin->sin_addr.s_addr >> 8) & 0xFF),
 			   (int)((psin->sin_addr.s_addr >> 16) & 0xFF),
@@ -48,16 +52,30 @@ static int _connect(int sock, struct sockaddr_in *psin, unsigned int len, uint32
 	ret = connect(sock, (struct sockaddr *)psin, len);
 	if (ret < 0)
 	{
-		DBG_CLIENT("[ERROR] TCP connect %d errno = %d\n", ret, WSAGetLastError());
+		DEBUG_CLIENT("[ERROR] TCP connect %d errno = %d\n", ret, WSAGetLastError());
 		close(sock);
 		return ret;
 	}
+
+	/* SET DEFAULT */
+
 	int enable = 1;
-	setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
-	setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout));
-	setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *)&enable, sizeof(enable));
-	setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, (char *)&enable, sizeof(enable));
-	DBG_CLIENT("[TCP] Connected\n");
+	ret = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
+	//DEBUG_CLIENT("[TCP] SO_RCVTIMEO: %d\n", ret);
+
+	ret = setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout));
+	//DEBUG_CLIENT("[TCP] SO_SNDTIMEO: %d\n", ret);
+
+	ret = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *)&enable, sizeof(enable));
+	//DEBUG_CLIENT("[TCP] TCP_NODELAY: %d\n", ret);
+
+	ret = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, (char *)&enable, sizeof(enable));
+	//DEBUG_CLIENT("[TCP] SO_KEEPALIVE: %d\n", ret);
+
+	u_long iMode = 1; // non-blocking mode is enabled > 0
+	ioctlsocket(sock, FIONBIO, &iMode);
+
+	DEBUG_CLIENT("[TCP] Connected\n");
 	return ret;
 }
 
@@ -66,22 +84,22 @@ int EthernetClient::connect(const char *host, uint16_t port)
 	struct hostent *hp;
 	int ret = 0;
 	extern int errno;
-	DBG_CLIENT("[TCP] Connecting: %s : %d\n", host, (int)port);
+	DEBUG_CLIENT("[TCP] Connecting: %s : %d\n", host, (int)port);
 	if (host == NULL || _sock != -1)
 	{
-		DBG_CLIENT("[ERROR] TCP socket!\n");
+		DEBUG_CLIENT("[ERROR] TCP socket!\n");
 		return 0;
 	}
 	_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (_sock < 0)
 	{
-		DBG_CLIENT("[ERROR] TCP unable to open a TCP socket\n");
+		DEBUG_CLIENT("[ERROR] TCP unable to open a TCP socket\n");
 		return 0;
 	}
 	hp = gethostbyname(host);
 	if (hp == NULL)
 	{
-		DBG_CLIENT("[ERROR] TCP gethostbyname %s fail\n", host);
+		DEBUG_CLIENT("[ERROR] TCP gethostbyname %s fail\n", host);
 		return 0;
 	}
 	struct sockaddr_in _sin;
@@ -91,7 +109,7 @@ int EthernetClient::connect(const char *host, uint16_t port)
 	ret = _connect(_sock, &_sin, sizeof(_sin), 20000);
 	if (ret < 0)
 	{
-		DBG_CLIENT("[ERROR] TCP unable to connect to target host %s\n", host);
+		DEBUG_CLIENT("[ERROR] TCP unable to connect to target host %s\n", host);
 		return 0;
 	}
 	if (ret == 0)
@@ -101,7 +119,6 @@ int EthernetClient::connect(const char *host, uint16_t port)
 
 int EthernetClient::connect(IPAddress ip, uint16_t port)
 {
-	// Look up the host first
 	int ret = 0;
 	extern int errno;
 	if (_sock != -1)
@@ -109,7 +126,7 @@ int EthernetClient::connect(IPAddress ip, uint16_t port)
 	_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (_sock < 0)
 	{
-		DBG_CLIENT("[ERROR] TCP unable to open a TCP socket\n");
+		DEBUG_CLIENT("[ERROR] TCP socket()\n");
 		return 0;
 	}
 	struct sockaddr_in sin;
@@ -120,7 +137,7 @@ int EthernetClient::connect(IPAddress ip, uint16_t port)
 	ret = _connect(_sock, &sin, sizeof(sin), 20000);
 	if (ret < 0)
 	{
-		DBG_CLIENT("[ERROR] TCP unable to connect to target ip\n");
+		DEBUG_CLIENT("[ERROR] TCP connect()\n");
 		return 0;
 	}
 	if (ret == 0)
@@ -139,11 +156,34 @@ size_t EthernetClient::write(const uint8_t *buf, size_t size)
 		return 0;
 	if (send(_sock, (char *)buf, size, 0) < 0)
 	{
-		DBG_CLIENT("[ERROR] TCP write()\n");
+		DEBUG_CLIENT("[ERROR] TCP write()\n");
 		stop();
 		size = 0;
 	}
 	return size;
+}
+
+int EthernetClient::read()
+{
+	char b = 0;
+	int rc = recv(_sock, &b, 1, 0); //MSG_DONTWAIT
+	if (rc > 0)
+	{
+		return b;
+	}
+	DEBUG_CLIENT("[ERROR] TCP read(byte) %d ( %d )\n", rc, WSAGetLastError());
+	return -1; // No data available
+}
+
+int EthernetClient::read(uint8_t *buf, size_t size)
+{
+	int rc = recv(_sock, (char *)buf, size, 0);
+	if (rc > 0)
+	{
+		return rc;
+	}
+	DEBUG_CLIENT("[ERROR] TCP read(%d)\n", size);
+	return -1;
 }
 
 int EthernetClient::available()
@@ -154,30 +194,10 @@ int EthernetClient::available()
 	int rc = ioctlsocket(_sock, FIONREAD, &count);
 	if (rc < 0)
 	{
-		DBG_CLIENT("[ERROR] TCP available()\n");
+		DEBUG_CLIENT("[ERROR] TCP available()\n");
 		return 0;
 	}
-	//DBG_CLIENT("[TCP] %d ", count);
 	return count;
-}
-
-int EthernetClient::read()
-{
-	char b = 0;
-	int rc = recv(_sock, &b, 1, 0);
-	//if (WSAGetLastError()) return -1;
-	if (rc > 0)
-		return b;
-	return -1; // No data available
-}
-
-int EthernetClient::read(uint8_t *buf, size_t size)
-{
-	int rc = recv(_sock, (char *)buf, size, 0);
-	//if (WSAGetLastError()) return -1;
-	if (rc > 0)
-		return rc;
-	return -1;
 }
 
 int EthernetClient::peek()
@@ -188,6 +208,7 @@ int EthernetClient::peek()
 	int rc = recv(_sock, &b, 1, MSG_PEEK);
 	if (rc > 0)
 		return b;
+	DEBUG_CLIENT("[ERROR] TCP peek()\n");
 	return -1;
 }
 
@@ -218,12 +239,70 @@ uint8_t EthernetClient::connected()
 	return connect_true == true;
 }
 
-uint8_t EthernetClient::status()
-{
-	return _sock == -1;
-}
-
 EthernetClient::operator bool()
 {
 	return _sock != -1;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool EthernetClient::getNoDelay()
+{
+	int flag = 0;
+	getOption(TCP_NODELAY, &flag);
+	return flag;
+}
+
+int EthernetClient::setNoDelay(bool nodelay)
+{
+	u_long iMode = 1; //non-blocking mode is enabled > 0
+	ioctlsocket(_sock, FIONBIO, &iMode);
+
+	int flag = nodelay;
+	return setOption(TCP_NODELAY, &flag);
+}
+
+int EthernetClient::getOption(int option, int *value)
+{
+	int size = sizeof(int);
+	int res = getsockopt(_sock, IPPROTO_TCP, option, (char *)value, &size);
+	if (res < 0)
+	{
+		DEBUG_CLIENT("[ERROR] get IPPROTO_TCP\n");
+	}
+	return res;
+}
+
+int EthernetClient::setOption(int option, int *value)
+{
+	int res = setsockopt(_sock, IPPROTO_TCP, option, (char *)value, sizeof(int));
+	if (res < 0)
+	{
+		DEBUG_CLIENT("[ERROR] set IPPROTO_TCP\n");
+	}
+	return res;
+}
+
+int EthernetClient::setSocketOption(int option, char *value, size_t len)
+{
+	int res = setsockopt(_sock, SOL_SOCKET, option, value, len);
+	if (res < 0)
+	{
+		DEBUG_CLIENT("[ERROR] set SOL_SOCKET %X : %d\n", option, errno);
+	}
+	return res;
+}
+
+int EthernetClient::setTimeout(uint32_t seconds)
+{
+	Client::setTimeout(seconds * 1000);
+	struct timeval tv;
+	tv.tv_sec = seconds;
+	tv.tv_usec = 0;
+	if (setSocketOption(SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval)) < 0)
+	{
+		DEBUG_CLIENT("[ERROR] set SO_RCVTIMEO\n");
+		return -1;
+	}
+	return setSocketOption(SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval));
 }
